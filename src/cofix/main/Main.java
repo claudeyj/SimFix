@@ -85,7 +85,7 @@ public class Main {
 			FileUtils.deleteDirectory(new File(subject.getHome() + subject.getTbin()));
 			if(lastRslt){
 				for(int i = currentTry; i < purifiedFailedTestCases.size(); i++){
-					if(Runner.testSingleTest(subject, purifiedFailedTestCases.get(i))){
+					if(Runner.testSingleTest(subject, purifiedFailedTestCases.get(i), false, 30)){
 						alreadyFix.add(purifiedFailedTestCases.get(i));
 					}
 				}
@@ -137,6 +137,7 @@ public class Main {
 			}
 		}
 		
+		subject.getXMLReporter().runEnd();
 		FileUtils.deleteDirectory(purifyBackup);
 		subject.restore(subject.getHome() + subject.getSsrc());
 		subject.restore(subject.getHome() + subject.getTsrc());

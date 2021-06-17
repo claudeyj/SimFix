@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,6 +28,7 @@ public class Executor {
 		try {
 			ProcessBuilder builder = new ProcessBuilder(command);
 			builder.redirectErrorStream(true);
+			long t0 = System.currentTimeMillis();
 			process = builder.start();
 			final InputStream inputStream = process.getInputStream();
 			
@@ -53,6 +55,7 @@ public class Executor {
 			try {
 				processReader.join();
 				process.waitFor();
+				System.out.println("command " + Arrays.toString(command) + " run time: " + (System.currentTimeMillis() - t0) + "ms");
 			} catch (InterruptedException e) {
 				return new LinkedList<>();
 			}

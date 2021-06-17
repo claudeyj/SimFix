@@ -38,8 +38,10 @@ import cofix.common.localization.AbstractFaultlocalization;
 import cofix.common.run.Runner;
 import cofix.common.util.JavaFile;
 import cofix.common.util.Pair;
+import cofix.common.util.Recorder;
 import cofix.common.util.Status;
 import cofix.common.util.Subject;
+import cofix.common.util.XMLReporter;
 import cofix.core.match.CodeBlockMatcher;
 import cofix.core.modify.Modification;
 import cofix.core.modify.Revision;
@@ -137,6 +139,7 @@ public class Repair {
 			buggyBlockList.addAll(buggyblock.reduce());
 			buggyBlockList.add(buggyblock);
 			
+			int candidatePatchId = 0;
 			for(CodeBlock oneBuggyBlock : buggyBlockList){
 				String currentBlockString = oneBuggyBlock.toSrcString().toString();
 				if(currentBlockString == null || currentBlockString.length() <= 0){
@@ -166,6 +169,8 @@ public class Repair {
 	//			Set<String> already = new HashSet<>();
 				for(Pair<CodeBlock, Double> similar : candidates){
 					// try top 100 candidates
+
+					//this is the start of a patch candidate
 					if(i > 100 || timer.timeout()){
 						break;
 					}
@@ -203,6 +208,7 @@ public class Repair {
 					while(true){
 						for(Set<Integer> modifySet : list){
 							if(timer.timeout()){
+								_subject.getXMLReporter().report(_subject);
 								return Status.TIMEOUT;
 							}
 							
@@ -246,12 +252,16 @@ public class Repair {
 							} catch (IOException e) {
 							}
 							
+							Recorder recorder = new Recorder(_subject, _subject.getSsrc() + "/" + loc.getFirst().replace(".", "/") + ".java", range, candidatePatchId, oneBuggyBlock);
+							_subject.setRecorder(recorder);
+							candidatePatchId ++;
 							// validate correctness of patch
 							switch (validate(logFile, oneBuggyBlock)) {
 							case COMPILE_FAILED:
 //								haveTryPatches.remove(replace);
 								break;
 							case SUCCESS:
+								_subject.getRecorder().setPatchResult(true);
 								String correctPatch = oneBuggyBlock.toSrcString().toString().replace("\\s*|\t|\r|\n", "");
 								if(patches.contains(correctPatch)){
 									continue;
@@ -271,10 +281,12 @@ public class Repair {
 								FileUtils.copyFile(sourceFile, new File(target + "/" + correct + "_" + sourceFile.getName()));
 								status = Status.SUCCESS;
 								if(correct == Constant.PATCH_NUM){
+									_subject.getXMLReporter().report(_subject);
 									return Status.SUCCESS;
 								}
 								break; //remove passed revision
 							case TEST_FAILED:
+								_subject.getRecorder().setPatchResult(false);
 								if(legalModifications != null){
 									for(Integer index : modifySet){
 										legalModifications.add(modifications.get(index));
@@ -292,6 +304,8 @@ public class Repair {
 						modifications = legalModifications;
 						legalModifications = null;
 					}
+					_subject.getXMLReporter().report(_subject);
+					//this is the end of a patch candidate
 				}
 			}
 		}
@@ -453,14 +467,14 @@ public class Repair {
 		// validate patch using failed test cases
 		for(String testcase : _failedTestCases){
 			String[] testinfo = testcase.split("::");
-			if(!Runner.testSingleTest(_subject, testinfo[0], testinfo[1])){
+			if(!Runner.testSingleTest(_subject, testinfo[0], testinfo[1], true, 30)){
 				return ValidateStatus.TEST_FAILED;
 			}
 		}
 		
 		dumpPatch(logFile, "Pass Single Test", "", new Pair<Integer, Integer>(0, 0), buggyBlock.toSrcString().toString());
 		
-		if(!Runner.runTestSuite(_subject)){
+		if(!Runner.runTestSuite(_subject, true)){
 			return ValidateStatus.TEST_FAILED;
 		}
 		

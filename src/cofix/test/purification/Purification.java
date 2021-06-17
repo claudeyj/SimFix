@@ -93,7 +93,7 @@ public class Purification {
 		for(Entry<String, List<String>> entry : purifiedMap.entrySet()){
 			boolean containFailed = false;
 			for(String t : entry.getValue()){
-				if(!Runner.testSingleTest(_subject, t)){
+				if(!Runner.testSingleTest(_subject, t, false, 30)){
 					containFailed = true;
 					failedTests.add(t);
 				}

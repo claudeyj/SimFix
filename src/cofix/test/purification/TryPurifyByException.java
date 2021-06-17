@@ -70,7 +70,7 @@ public class TryPurifyByException {
 					}
 				}
 				JavaFile.writeStringToFile(_fileName, _unit.toString());
-				if (!Runner.testSingleTest(_subject, _clazz, _testName)) {
+				if (!Runner.testSingleTest(_subject, _clazz, _testName, false, 30)) {
 					failed.add(mcallLine);
 				}
 			}
@@ -137,7 +137,7 @@ public class TryPurifyByException {
 		}
 		
 		JavaFile.writeStringToFile(_fileName, _unit.toString());
-		if(Runner.testSingleTest(_subject, _clazz, _testName)){
+		if(Runner.testSingleTest(_subject, _clazz, _testName, false, 30)){
 			return true;
 		}
 		

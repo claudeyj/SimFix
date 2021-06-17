@@ -6,6 +6,9 @@
  */
 package cofix.common.run;
 
+import java.io.File;
+import java.util.Arrays;
+
 import cofix.common.config.Constant;
 import cofix.common.util.Subject;
 
@@ -51,6 +54,21 @@ public class CmdFactory {
 	
 	public static String[] createTestSingleTestCaseCmd(Subject subject, String clazz, String method){
 		return createD4JCmd(subject, "test -t " + clazz + "::" + method, -1);
+	}
+
+	public static String[] createCheckOutCmd(Subject subject)
+	{
+		String homePath = subject.getHome();
+		File home = new File(homePath);
+		if (!home.exists())
+		{
+			home.mkdirs();
+		}
+		char[] cs = subject.getName().toCharArray();
+		cs[0] -= 32;
+		String[] cmd = createD4JCmd(subject, "checkout -p " + String.valueOf(cs) + " -v " + subject.getId() + "b" + " -w " + homePath, -1);
+		System.out.println(Arrays.toString(cmd));
+		return cmd;
 	}
 	
 	/**

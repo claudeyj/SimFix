@@ -11,6 +11,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +23,10 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 
 import cofix.common.config.Constant;
+import cofix.common.run.CmdFactory;
+import cofix.common.run.Executor;
+import cofix.common.run.Runner;
+import cofix.core.parser.node.CodeBlock;
 
 /**
  * 
@@ -38,6 +44,9 @@ public class Subject {
 	private List<String> _instrumentPackages = null;
 	private List<String> _testClasses = null;
 	private List<String> _dependency = null;
+	private List<String> _testCases = null;
+	private Recorder recorder = null;
+	private XMLReporter reporter = null;
 
 	/**
 	 * subject
@@ -67,6 +76,7 @@ public class Subject {
 		_sbin = sbin;
 		_tbin = tbin;
 		_dependency = dependency;
+		initializeSubject(this);
 	}
 	
 	public void setDependency(List<String> dependency){
@@ -121,7 +131,7 @@ public class Subject {
 	 * @return e.g., "/home/user/chart/chart_1_buggy"
 	 */
 	public String getHome() {
-		return Constant.PROJECT_HOME + "/" + _name + "/" + _name + "_" + _id + "_buggy";
+		return Constant.PROJECT_HOME + _name + "/" + _name + "_" + _id + "_buggy";
 	}
 	
 	public String getFailedTestRecFile(){
@@ -242,6 +252,78 @@ public class Subject {
 			}
 		}
 		return classes;
+	}
+
+	public List<String> getTestCases()
+	{
+		return this._testCases;
+	}
+
+	private static void initializeSubject(Subject subject)
+	{
+		System.out.println(subject.getHome());
+		System.out.println(subject.getId());
+		Executor.execute(new String[]{"/bin/bash", "-c", "rm -rf " + subject.getHome()});
+		Executor.execute(CmdFactory.createCheckOutCmd(subject));
+		if(!Runner.compileSubject(subject)){
+			System.err.println("Build failed !");
+		}
+		//test to get all test list
+		// Executor.execute(CmdFactory.createBuildSubjectCmd(subject));
+		// Executor.execute(CmdFactory.createTestSubjectCmd(subject, 0));
+		try {
+			System.out.println("TESTING : " + subject.getName() + "_" + subject.getId());
+			Executor.execute(CmdFactory.createTestSubjectCmd(subject, 0)); //run without timeout limit
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		// File failingTestFile = new File(subject.getHome() + "/all_tests");
+		try {
+			String lines = new String(Files.readAllBytes(Paths.get(subject.getHome() + "/all_tests")));
+			String[] tests = lines.split("\n");
+			System.out.println("number of all tests: " + tests.length);
+			assert tests.length > 1;
+			if (subject._testCases == null)
+			{
+				subject._testCases = new ArrayList<>();
+			}
+			for (String test : tests)
+			{
+				// System.out.println(test);
+				String testMethod = test.split("\\(")[0];
+				String temp = test.split("\\(")[1];
+				String testClass = temp.substring(0, temp.length() - 1);
+				String testCase = testClass + "::" + testMethod;
+				// System.out.println(testCase);
+				subject._testCases.add(testCase);
+			}
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		subject.reporter = new XMLReporter();
+		subject.reporter.runStart(subject);
+	}
+
+	public void setRecorder(Recorder recorder)
+	{
+		this.recorder = recorder;
+	}
+
+	public Recorder getRecorder()
+	{
+		return this.recorder;
+	}
+
+	public XMLReporter getXMLReporter()
+	{
+		return this.reporter;
+	}
+
+	public void clearRecorder()
+	{
+		this.recorder = null;
 	}
 
 	@Override
