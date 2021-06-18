@@ -66,7 +66,7 @@ public class Runner {
 				int timeout = (int)timer/1000 < 30 ? (int)timer/1000 : 30;
 				long t0 = System.currentTimeMillis();
 				// testSingleTest(subject, testCase, record, (int)timer/1000);
-				testSingleTest(subject, testCase, record, timeout);
+				success = testSingleTest(subject, testCase, record, timeout) ? success : false;
 				long testTime = System.currentTimeMillis() - t0;
 				System.out.println(testCase + " run time: " + testTime);
 				timer -= testTime;
