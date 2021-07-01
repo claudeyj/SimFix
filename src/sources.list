@@ -2,7 +2,6 @@
 ./src/fl/util/Utils.java
 ./src/fl/Main.java
 ./src/sbfl/locator/SBFLocator.java
-./src/TestJVM.java
 ./src/cofix/core/parser/node/stmt/ReturnStmt.java
 ./src/cofix/core/parser/node/stmt/TypeDeclarationStmt.java
 ./src/cofix/core/parser/node/stmt/ThrowStmt.java
