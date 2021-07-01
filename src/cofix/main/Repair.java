@@ -40,6 +40,7 @@ import cofix.common.util.JavaFile;
 import cofix.common.util.Pair;
 import cofix.common.util.Status;
 import cofix.common.util.Subject;
+import cofix.common.util.XMLUtils;
 import cofix.core.match.CodeBlockMatcher;
 import cofix.core.modify.Modification;
 import cofix.core.modify.Revision;
@@ -137,6 +138,7 @@ public class Repair {
 			buggyBlockList.addAll(buggyblock.reduce());
 			buggyBlockList.add(buggyblock);
 			
+			int candidatePatchId = 0;
 			for(CodeBlock oneBuggyBlock : buggyBlockList){
 				String currentBlockString = oneBuggyBlock.toSrcString().toString();
 				if(currentBlockString == null || currentBlockString.length() <= 0){
@@ -246,12 +248,17 @@ public class Repair {
 							} catch (IOException e) {
 							}
 							
+							candidatePatchId ++;
+							String patchQualifiedName = _subject.getName() + "-" + _subject.getId() + "-" 
+							+ _subject.getSsrc() + "/" + loc.getFirst().replace(".", "/") + ".java" + "-L"
+							+ range.getFirst() + "-L" + range.getSecond() + "-" +candidatePatchId;
 							// validate correctness of patch
-							switch (validate(logFile, oneBuggyBlock)) {
+							switch (validate(logFile, oneBuggyBlock, patchQualifiedName)) {
 							case COMPILE_FAILED:
 //								haveTryPatches.remove(replace);
 								break;
 							case SUCCESS:
+								// _subject.getXMLReporter().report(patchQualifiedName, "SURVIVED", _subject.getHome() + "/test_time.xml");
 								String correctPatch = oneBuggyBlock.toSrcString().toString().replace("\\s*|\t|\r|\n", "");
 								if(patches.contains(correctPatch)){
 									continue;
@@ -275,6 +282,7 @@ public class Repair {
 								}
 								break; //remove passed revision
 							case TEST_FAILED:
+								// _subject.getXMLReporter().report(patchQualifiedName, "KILLED", _subject.getHome() + "/test_time.xml");
 								if(legalModifications != null){
 									for(Integer index : modifySet){
 										legalModifications.add(modifications.get(index));
@@ -444,16 +452,26 @@ public class Repair {
 		return rslt;
 	}
 	
-	private ValidateStatus validate(String logFile, CodeBlock buggyBlock){
+	private ValidateStatus validate(String logFile, CodeBlock buggyBlock, String patchName){
 		if(!Runner.compileSubject(_subject)){
 //			System.err.println("Build failed !");
 			return ValidateStatus.COMPILE_FAILED;
 		}
-		
+		boolean record = true;
+
+		//clear former XML
+		String xmlPath = _subject.getHome() + "/test_time.xml";
+		try {
+			XMLUtils.clearAndCopy(xmlPath);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
 		// validate patch using failed test cases
 		for(String testcase : _failedTestCases){
 			String[] testinfo = testcase.split("::");
-			if(!Runner.testSingleTest(_subject, testinfo[0], testinfo[1])){
+			if(!Runner.testSingleTest(_subject, testinfo[0], testinfo[1], record)){
+				_subject.getXMLReporter().report(patchName, "KILLED", _subject.getHome() + "/test_time.xml");
 				return ValidateStatus.TEST_FAILED;
 			}
 		}
@@ -461,9 +479,11 @@ public class Repair {
 		dumpPatch(logFile, "Pass Single Test", "", new Pair<Integer, Integer>(0, 0), buggyBlock.toSrcString().toString());
 		
 		if(!Runner.runTestSuite(_subject)){
+			_subject.getXMLReporter().report(patchName, "KILLED", _subject.getHome() + "/test_time.xml");
 			return ValidateStatus.TEST_FAILED;
 		}
 		
+		_subject.getXMLReporter().report(patchName, "SURVIVED", _subject.getHome() + "/test_time.xml");
 		return ValidateStatus.SUCCESS;
 	}
 	

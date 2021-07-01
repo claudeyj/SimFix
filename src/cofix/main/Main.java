@@ -137,6 +137,7 @@ public class Main {
 			}
 		}
 		
+		subject.getXMLReporter().runEnd();
 		FileUtils.deleteDirectory(purifyBackup);
 		subject.restore(subject.getHome() + subject.getSsrc());
 		subject.restore(subject.getHome() + subject.getTsrc());

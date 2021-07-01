@@ -46,6 +46,17 @@ public class Runner {
 	public static boolean testSingleTest(Subject subject, String clazz, String method){
 		return testSingleTest(subject, clazz + "::" + method);
 	}
+
+	public static boolean testSingleTest(Subject subject, String clazz, String method, boolean record){
+		if (record)
+		{
+			System.setProperty("RECORD", "record-single-test");
+		}
+		boolean result = testSingleTest(subject, clazz + "::" + method);
+
+		System.clearProperty("RECORD");
+		return result;
+	}
 	
 	public static boolean runTestSuite(Subject subject){
 		List<String> message = null;

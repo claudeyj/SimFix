@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 
 import cofix.common.config.Constant;
+import cofix.main.XMLReporter;
 
 /**
  * 
@@ -38,6 +39,7 @@ public class Subject {
 	private List<String> _instrumentPackages = null;
 	private List<String> _testClasses = null;
 	private List<String> _dependency = null;
+	private XMLReporter reporter = null;
 
 	/**
 	 * subject
@@ -67,6 +69,8 @@ public class Subject {
 		_sbin = sbin;
 		_tbin = tbin;
 		_dependency = dependency;
+		reporter = new XMLReporter();
+		reporter.runStart(this.getHome() + "/test-time-report/report-" + System.currentTimeMillis() + ".xml");
 	}
 	
 	public void setDependency(List<String> dependency){
@@ -242,6 +246,11 @@ public class Subject {
 			}
 		}
 		return classes;
+	}
+
+	public XMLReporter getXMLReporter()
+	{
+		return this.reporter;
 	}
 
 	@Override
